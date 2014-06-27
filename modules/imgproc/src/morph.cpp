@@ -1452,6 +1452,61 @@ static bool ocl_morphology_op(InputArray _src, OutputArray _dst, Mat kernel,
     return true;
 }
 
+/*
+static bool ocl_morphology_vHGW(InputArray _src, OutputArray _dst, Mat kernel,
+    const Size & ksize, const Point & anchor, int iterations, int op)
+{
+    CV_Assert(op == MORPH_ERODE || op == MORPH_DILATE || iterations == 1);
+
+    int type = _src.type(), depth = CV_MAT_DEPTH(type), cn = CV_MAT_CN(type);
+    bool doubleSupport = ocl::Device::getDefault().doubleFPConfig() > 0;
+
+    if (depth == CV_64F && !doubleSupport)
+        return false;
+
+    UMat kernel8U;
+    kernel.convertTo(kernel8U, CV_8U);
+    kernel8U = kernel8U.reshape(1, 1);
+
+    bool rectKernel = true;
+    {
+        Mat m = kernel.reshape(1, 1);
+        for (int i = 0; i < m.size().area(); ++i)
+        if (m.at<uchar>(i) != 1)
+        {
+            rectKernel = false;
+            break;
+        }
+    }
+
+    CV_Assert(rectKernel);
+
+    UMat src, horRes;
+    src = _src.getUMat();
+    src.copyTo(horRes);
+
+    static const char * const op2str[] = { "ERODE", "DILATE" };
+    String buildOptions = format("-D RADIUSX=%d -D RADIUSY=%d -D -D %s%s%s"
+        " -D T=%s -D DEPTH_%d -D cn=%d -D T1=%s", anchor.x, anchor.y, op2str[op],
+        doubleSupport ? " -D DOUBLE_SUPPORT" : "", rectKernel ? " -D RECTKERNEL" : "",
+        ocl::typeToStr(_src.type()), _src.depth(), cn, ocl::typeToStr(depth));
+
+    ocl::Kernel k("hor_vHGW", ocl::imgproc::morph_oclsrc, buildOptions);
+    if (k.empty())
+        return false;
+
+    kernel.args(ocl::KernelArg::PtrReadOnly(src), ocl::KernelArg::PtrWriteOnly(horRes),
+            ocl::KernelArg::PtrReadOnly(kernel8U), kernel8U.size().width);
+
+    int numtiles = (src.size().width + ksize.width - 1) / ksize.width;
+
+    size_t globalsize[] = { numtiles, src.size().height };// , localsize[] = { ksize.width, 1 };
+    bool ok = k.run(2, globalsize, NULL, true);
+
+    //the same for vertical operation
+
+}
+*/
 #endif
 
 static void morphOp( int op, InputArray _src, OutputArray _dst,

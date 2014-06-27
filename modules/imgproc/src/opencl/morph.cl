@@ -159,3 +159,97 @@ __kernel void morph(__global const uchar * srcptr, int src_step, int src_offset,
         storepix(res, dstptr + dst_index);
     }
 }
+
+//this kernel works for odd kwidth only! and single-channel (8UC1) only
+/*
+__kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offset,
+    __global uchar * dstptr, int dst_step, int dst_offset,
+    __constant uchar * mat_kernel, int kwidth)
+{
+    //int x0 = get_group_id(0);
+    //int y0 = get_group_id(1);
+    int xgl = get_global_id(0);
+    int ygl = get_global_id(1);
+    //apron size, left and right from the tile
+    int apron = (kwidth - 1) / 2;
+    int xpix = xgl*kwidth - apron;
+    int xmaxpix = xgl*kwidth + apron;
+
+    //if xpix < 0 - we got the first window, and do need to compute less from left side
+    //if xmaxpix > src.size().x - we got the last window, and do need to compute less from right side
+
+    //special case for the first window
+
+    //special case for the last window
+
+    __global const int* ptr = (__global const int*)(srcptr + src_offset + src_step*ygl + xpix);
+
+    __local int suf[2*kwidth-1];
+//    int curVal;
+    suf[kwidth - 1] = *(__global const int*)(ptr + (kwidth-1)*4);
+    for (int i = kwidth - 2; i > 0; i--)
+    {
+        suf[i] = max(suf[i + 1], *(__global const int*)(ptr + i * 4));
+        suf[2 * kwidth - i] = max(suf[2*kwidth-i+1], *(__global const int*)(ptr + (kwidth - i) * 4));
+    }
+
+}
+*/
+    /*
+    __global__ void _horizontalVHGWKernel(const dataType *img, int imgStep, dataType *result,
+                                    int resultStep, unsigned int width, unsigned int height,
+                                        unsigned int size, rect2d borderSize)
+    {
+    const unsigned int step = __umul24(blockIdx.x, blockDim.x) + threadIdx.x;
+    const unsigned int y = __umul24(blockIdx.y, blockDim.y) + threadIdx.y;
+    const unsigned int startx = __umul24(step, size);
+
+    if (y >= height || startx > width)
+        return;
+
+    const dataType *lineIn = img + y*imgStep;
+    dataType *lineOut = result + y*resultStep;
+    const unsigned int center = startx + (size - 1);
+
+    dataType minarray[512];
+    minarray[size - 1] = lineIn[center];
+
+    dataType nextMin;
+    unsigned int k;
+    if (MOP == ERODE) {
+        for (k = 1; k<size; ++k) {
+            nextMin = lineIn[center - k];
+            minarray[size - 1 - k] = min(minarray[size - k], nextMin);
+
+            nextMin = (center + k < width + size - 1) ? lineIn[center + k] : 255;
+            minarray[size - 1 + k] = min(minarray[size + k - 2], nextMin);
+        }
+    }
+    else {
+        for (k = 1; k<size; ++k) {
+            nextMin = lineIn[__umul24(center - k, imgStep)];
+            minarray[size - 1 - k] = max(minarray[size - k], nextMin);
+
+            nextMin = lineIn[__umul24(center + k, imgStep)];
+            minarray[size - 1 + k] = max(minarray[size + k - 2], nextMin);
+        }
+    }
+
+    int diff = width - startx;
+    if (diff > 0) {
+        lineOut += startx;
+        lineOut[0] = minarray[0];
+
+        for (k = 1; k < size - 1; ++k) {
+            if (diff > k) {
+                lineOut[k] = minMax<dataType, MOP>(minarray[k], minarray[k + size - 1]);
+            }
+        }
+
+        if (diff > size - 1) {
+            lineOut[size - 1] = minarray[2 * (size - 1)];
+        }
+    }
+}
+*/
+}
