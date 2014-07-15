@@ -20,12 +20,12 @@ printf( "Hot keys: \n"
     "\tSPACE - loop through all the options\n" );
 }
 
-Mat src, dst;
+UMat src, dst;
 
 int element_shape = MORPH_RECT;
 
 //the address of variable which receives trackbar position update
-int max_iters = 10;
+int max_iters = 1;
 int open_close_pos = 0;
 int erode_dilate_pos = 0;
 
@@ -46,8 +46,10 @@ static void OpenClose(int, void*)
 static void ErodeDilate(int, void*)
 {
     int n = erode_dilate_pos - max_iters;
-    int an = n > 0 ? n : -n;
-    Mat element = getStructuringElement(element_shape, Size(an*2+1, an*2+1), Point(an, an) );
+    int an = 6;//n > 0 ? n : -n;
+    Mat element1 = getStructuringElement(element_shape, Size(an*2+1, an*2+1), Point(an, an) );
+    UMat element;
+    element1.convertTo(element, CV_8UC1);
     if( n < 0 )
         erode(src, dst, element);
     else
@@ -58,12 +60,31 @@ static void ErodeDilate(int, void*)
 
 int main( int argc, char** argv )
 {
-    char* filename = argc == 2 ? argv[1] : (char*)"baboon.jpg";
-    if( (src = imread(filename,1)).data == 0 )
+    char testdata[] = { 9, 2, 4, 5, 2, 4, 3, 9, 2, 8, 4, 2, 2, 7, 15, 33, 8, 1 };
+    int dims[] = { 2, 9 };
+    Mat src1 = cv::Mat(2, dims, CV_8UC1, testdata);
+    UMat src;
+    src1.convertTo(src, 0);
+
+    char td1[] = { 1, 1, 1 };
+    int dims1[] = { 1, 3 };
+    Mat kern1 = cv::Mat(2, dims1, CV_8UC1, td1);
+    UMat kern;
+    kern1.convertTo(kern, 0);
+
+    UMat dst;
+
+    dilate(src, dst, kern);
+
+    /*char* filename = argc == 2 ? argv[1] : (char*)"baboon.jpg";
+    Mat src1;
+    if( (src1 = imread(filename,1)).data == 0 )
         return -1;
 
     help();
 
+    //src1.convertTo(src, CV_8UC1);
+    cvtColor(src1, src, 7, 1);
     //create windows for output images
     namedWindow("Open/Close",1);
     namedWindow("Erode/Dilate",1);
@@ -76,7 +97,7 @@ int main( int argc, char** argv )
     {
         int c;
 
-        OpenClose(open_close_pos, 0);
+        //OpenClose(open_close_pos, 0);
         ErodeDilate(erode_dilate_pos, 0);
         c = waitKey(0);
 
@@ -91,6 +112,8 @@ int main( int argc, char** argv )
         else if( (char)c == ' ' )
             element_shape = (element_shape + 1) % 3;
     }
+    */
 
+    waitKey(30);
     return 0;
 }

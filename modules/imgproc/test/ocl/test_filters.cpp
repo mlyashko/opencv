@@ -261,16 +261,17 @@ OCL_TEST_P(Dilate, Mat)
     Size kernelSize(ksize, ksize);
     int iterations = (int)param;
 
-    for (int j = 0; j < test_loop_times; j++)
-    {
+    //for (int j = 0; j < test_loop_times; j++)
+    //{
         random_roi();
-        Mat kernel = randomMat(kernelSize, CV_8UC1, 0, 3);
+        //Mat kernel = randomMat(kernelSize, CV_8UC1, 0, 3);
+        Mat kernel = randomMat(kernelSize, CV_8UC1, 1, 2);
 
         OCL_OFF(cv::dilate(src_roi, dst_roi, kernel, Point(-1, -1), iterations) );
         OCL_ON(cv::dilate(usrc_roi, udst_roi, kernel, Point(-1, -1), iterations) );
 
         Near();
-    }
+    //}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

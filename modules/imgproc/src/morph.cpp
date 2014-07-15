@@ -1340,15 +1340,14 @@ static bool IPPMorphOp(int op, InputArray _src, OutputArray _dst,
 #ifdef HAVE_OPENCL
 
 static bool ocl_morphology_vHGW(InputArray _src, OutputArray _dst, Mat kernel,
-    const Size & ksize, const Point & anchor, int iterations, int op)
+    const Size & ksize, const Point & anchor, int iterations, int op = 0)
 {
     CV_Assert(op == MORPH_ERODE || op == MORPH_DILATE || iterations == 1);
 
     int type = _src.type(), depth = CV_MAT_DEPTH(type), cn = CV_MAT_CN(type);
     bool doubleSupport = ocl::Device::getDefault().doubleFPConfig() > 0;
 
-    //if (depth == CV_64F && !doubleSupport)
-    if (depth != CV_8U && !doubleSupport)
+    if (depth != CV_8U )
         return false;
 
     UMat kernel8U;
@@ -1372,24 +1371,42 @@ static bool ocl_morphology_vHGW(InputArray _src, OutputArray _dst, Mat kernel,
     src = _src.getUMat();
     src.copyTo(horRes);
 
+    op = 1;
     static const char * const op2str[] = { "OP_ERODE", "OP_DILATE" };
-    String buildOptions = format(" -D %s%s%"
-        " -D cn=%d -D", op2str[op], cn);
+    String buildOptions1 = format("-D OP_VHGW -D %s -D cn=%d -D SUFSIZE=%d", op2str[op], cn, (2*kernel8U.size().width - 1));
 
-    ocl::Kernel k("hor_vHGW", ocl::imgproc::morph_oclsrc, buildOptions);
+    ocl::Kernel k;
+    bool fl = k.create("hor_vHGW", ocl::imgproc::morph_oclsrc, buildOptions1);
     if (k.empty())
         return false;
 
-    k.args(ocl::KernelArg::PtrReadOnly(src), ocl::KernelArg::PtrWriteOnly(horRes), src.cols,
-        ocl::KernelArg::PtrReadOnly(kernel8U), kernel8U.size().width);
+    int kwidth = kernel8U.size().width;
+    k.args(ocl::KernelArg::ReadOnlyNoSize(src), ocl::KernelArg::WriteOnlyNoSize(horRes), src.cols,
+        ocl::KernelArg::PtrReadOnly(kernel8U), kwidth);
 
     int numtiles = (src.size().width + ksize.width - 1) / ksize.width;
 
     size_t globalsize[] = { numtiles, src.size().height };// , localsize[] = { ksize.width, 1 };
     bool ok = k.run(2, globalsize, NULL, true);
 
-    //the same for vertical operation
+    if (!ok)
+        return false;
 
+    //the same for vertical operation
+    //transpose matrix
+    UMat dst;
+    dst = _dst.getUMat();
+    transpose(horRes, horRes);
+
+    k.args(ocl::KernelArg::ReadOnlyNoSize(horRes), ocl::KernelArg::WriteOnlyNoSize(dst), src.rows,
+        ocl::KernelArg::PtrReadOnly(kernel8U), kernel8U.size().height);
+
+    numtiles = (src.size().height + ksize.height - 1) / ksize.height;
+
+    size_t globalsize1[] = { numtiles, src.size().width };// , localsize[] = { ksize.width, 1 };
+    ok = k.run(2, globalsize1, NULL, true);
+
+    return ok;
 }
 
 
@@ -1405,10 +1422,11 @@ static bool ocl_morphOp(InputArray _src, OutputArray _dst, InputArray _kernel,
         return false;
     Mat kernel = _kernel.getMat();
 
-    if (depth == CV_8U)
+    if ((depth == CV_8U) && (cn == 1)&&((iterations == 0)||(iterations == 1)))
     {
-        return ocl_morphology_vHGW(_src, _dst, kernel, kernel.size(),
-            anchor, iterations, actual_op);
+        if (ocl_morphology_vHGW(_src, _dst, kernel, kernel.size(),
+            anchor, iterations, actual_op))
+            return true;
     }
 
 
@@ -1469,7 +1487,7 @@ static bool ocl_morphOp(InputArray _src, OutputArray _dst, InputArray _kernel,
     for (int i = 0; i < iterations; i++)
     {
         int current_op = iterations == i + 1 ? actual_op : op;
-        String buildOptions = format("-D RADIUSX=%d -D RADIUSY=%d -D LSIZE0=%d -D LSIZE1=%d -D %s%s"
+        String buildOptions = format("-D OP_GENERAL -D RADIUSX=%d -D RADIUSY=%d -D LSIZE0=%d -D LSIZE1=%d -D %s%s"
                                      " -D PROCESS_ELEMS=%s -D T=%s -D DEPTH_%d -D cn=%d -D T1=%s"
                                      " -D convertToWT=%s -D convertToT=%s -D ST=%s%s",
                                      anchor.x, anchor.y, (int)localThreads[0], (int)localThreads[1], op2str[op],

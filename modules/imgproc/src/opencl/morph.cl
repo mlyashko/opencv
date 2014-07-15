@@ -103,6 +103,8 @@
 #define MORPH_OP(A, B) max((A), (B))
 #endif
 
+
+
 #define PROCESS(y, x) \
     res = MORPH_OP(res, LDS_DAT[mad24(l_y + y, width, l_x + x)]);
 
@@ -115,6 +117,7 @@
 #define EXTRA_PARAMS
 #endif
 
+#if defined OP_GENERAL
 __kernel void morph(__global const uchar * srcptr, int src_step, int src_offset,
                     __global uchar * dstptr, int dst_step, int dst_offset,
                     int src_offset_x, int src_offset_y, int cols, int rows,
@@ -179,7 +182,9 @@ __kernel void morph(__global const uchar * srcptr, int src_step, int src_offset,
 #endif
     }
 }
+#endif
 
+#ifdef OP_VHGW
 //this kernel works for odd kwidth only! and single-channel (8UC1) only
 __kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offset,
     __global uchar * dstptr, int dst_step, int dst_offset, int cols,
@@ -189,27 +194,29 @@ __kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offs
     int ygl = get_global_id(1);
     //apron size, left and right from the tile
     int apron = (kwidth - 1) / 2;
+    printf("xgl = %d, ygl = %d, kwidth = %d, apron = %d \n", xgl, ygl, kwidth, apron);
     int xpix = xgl*kwidth - apron;
+
     int xmaxpix = xgl*kwidth + apron;
 
     //if xpix < 0 - we got the first window, and do need to compute less from left side
     //if xmaxpix > src.size().x - we got the last window, and do need to compute less from right side
 
-    __global const int* ptr = (__global const int*)(srcptr + src_offset + src_step*ygl + xpix);
+    __global const uchar* ptr = (__global const uchar*)(srcptr + src_offset + src_step*ygl + xpix);
 
     //write data to dst directly
-    int dst_index = mad24(ygl, dst_step, mad24(xgl, 4, dst_offset));
+    int dst_index = mad24(ygl, dst_step, (xgl + dst_offset));
     //_local int res_x[kwidth];
-    __global int* res_x = (__global const int*)dstptr + dst_index;
+    __global uchar* res_x = dstptr + dst_index;
 
-    __local int suf[2*kwidth-1];
-    suf[kwidth - 1] = *(__global const int*)(ptr + (kwidth-1)*4);
-    if (xpix >= 0) && (xmaxpix < cols)
+    __local uchar suf[SUFSIZE];
+    suf[kwidth - 1] = *(uchar*)(ptr + (kwidth-1));
+    if ((xpix >= 0)&&(xmaxpix < cols))
     {
         for (int i = kwidth - 2; i > 0; i--)
         {
-            suf[i] = MORPH_OP(suf[i + 1], *(__global const int*)(ptr + i * 4));
-            suf[2 * kwidth - i] = MORPH_OP(suf[2 * kwidth - i + 1], *(__global const int*)(ptr + (kwidth - i) * 4));
+            suf[i] = MORPH_OP(suf[i + 1], *(__global const uchar*)(ptr + i));
+            suf[2 * kwidth - i] = MORPH_OP(suf[2 * kwidth - i + 1], *(__global const uchar*)(ptr + (kwidth - i)));
         }
         for (int j = 0; j < kwidth; j++)
         {
@@ -220,7 +227,7 @@ __kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offs
     {
         for (int i = kwidth - 2; i > 0; i--)
         {
-            suf[i] = MORPH_OP(suf[i + 1], *(__global const int*)(ptr + i * 4));
+            suf[i] = MORPH_OP(suf[i + 1], *(__global const uchar*)(ptr + i));
         }
         for (int j = 0; j < kwidth; j++)
         {
@@ -231,7 +238,7 @@ __kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offs
     {
         for (int i = kwidth - 2; i > 0; i--)
         {
-            suf[2 * kwidth - i] = MORPH_OP(suf[2 * kwidth - i + 1], *(__global const int*)(ptr + (kwidth - i) * 4));
+            suf[2 * kwidth - i] = MORPH_OP(suf[2 * kwidth - i + 1], *(__global const uchar*)(ptr + (kwidth - i) ));
         }
         for (int j = 0; j < kwidth; j++)
         {
@@ -239,6 +246,4 @@ __kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offs
         }
     }
 }
-
-
-}
+#endif
