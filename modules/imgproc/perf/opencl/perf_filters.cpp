@@ -143,7 +143,8 @@ OCL_PERF_TEST_P(ErodeFixture, Erode,
 
     OCL_TEST_CYCLE() cv::erode(src, dst, ker);
 
-    SANITY_CHECK(dst);
+    //SANITY_CHECK(dst);
+    SANITY_CHECK_NOTHING();
 }
 
 ///////////// Dilate ////////////////////
@@ -165,7 +166,8 @@ OCL_PERF_TEST_P(DilateFixture, Dilate,
 
     OCL_TEST_CYCLE() cv::dilate(src, dst, ker);
 
-    SANITY_CHECK(dst);
+    //SANITY_CHECK(dst);
+    SANITY_CHECK_NOTHING();
 }
 
 ///////////// MorphologyEx ////////////////////////

@@ -1340,12 +1340,12 @@ static bool IPPMorphOp(int op, InputArray _src, OutputArray _dst,
 #ifdef HAVE_OPENCL
 
 static bool ocl_morphology_vHGW(InputArray _src, OutputArray _dst, Mat kernel,
-    const Size & ksize, const Point & anchor, int iterations, int op = 0)
+    const Size & ksize/*, const Point & anchor*/, int iterations, int op = 0)
 {
     CV_Assert(op == MORPH_ERODE || op == MORPH_DILATE || iterations == 1);
 
     int type = _src.type(), depth = CV_MAT_DEPTH(type), cn = CV_MAT_CN(type);
-    bool doubleSupport = ocl::Device::getDefault().doubleFPConfig() > 0;
+    //bool doubleSupport = ocl::Device::getDefault().doubleFPConfig() > 0;
 
     if (depth != CV_8U )
         return false;
@@ -1377,7 +1377,7 @@ static bool ocl_morphology_vHGW(InputArray _src, OutputArray _dst, Mat kernel,
 
     ocl::Kernel k;
     bool fl = k.create("hor_vHGW", ocl::imgproc::morph_oclsrc, buildOptions1);
-    if (k.empty())
+    if (!fl || k.empty())
         return false;
 
     int kwidth = kernel8U.size().width;
@@ -1425,7 +1425,7 @@ static bool ocl_morphOp(InputArray _src, OutputArray _dst, InputArray _kernel,
     if ((depth == CV_8U) && (cn == 1)&&((iterations == 0)||(iterations == 1)))
     {
         if (ocl_morphology_vHGW(_src, _dst, kernel, kernel.size(),
-            anchor, iterations, actual_op))
+            iterations, actual_op))
             return true;
     }
 

@@ -194,7 +194,7 @@ __kernel void hor_vHGW(__global const uchar * srcptr, int src_step, int src_offs
     int ygl = get_global_id(1);
     //apron size, left and right from the tile
     int apron = (kwidth - 1) / 2;
-    printf("xgl = %d, ygl = %d, kwidth = %d, apron = %d \n", xgl, ygl, kwidth, apron);
+    //printf("xgl = %d, ygl = %d, kwidth = %d, apron = %d \n", xgl, ygl, kwidth, apron);
     int xpix = xgl*kwidth - apron;
 
     int xmaxpix = xgl*kwidth + apron;

@@ -22,7 +22,8 @@ PERF_TEST_P(Size_MatType, erode, TYPICAL_MATS_MORPH)
     int runs = (sz.width <= 320) ? 15 : 1;
     TEST_CYCLE_MULTIRUN(runs) erode(src, dst, noArray());
 
-    SANITY_CHECK(dst);
+    //SANITY_CHECK(dst);
+    SANITY_CHECK_NOTHING();
 }
 
 PERF_TEST_P(Size_MatType, dilate, TYPICAL_MATS_MORPH)
@@ -37,5 +38,6 @@ PERF_TEST_P(Size_MatType, dilate, TYPICAL_MATS_MORPH)
 
     TEST_CYCLE() dilate(src, dst, noArray());
 
-    SANITY_CHECK(dst);
+    //SANITY_CHECK(dst);
+    SANITY_CHECK_NOTHING();
 }
